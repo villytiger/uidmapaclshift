@@ -1,0 +1,45 @@
+#!/bin/sh
+
+if [ $# -ne 4 ]; then
+    echo "Usage: uidmapaclshift file src dst range" 1>&2
+    exit 1
+fi
+
+dir=$1
+src=$2
+dst=$3
+range=$4
+
+setnewacl() {
+    file=$1
+    newacl=""
+
+    for a in $(getfacl -cnp "$file"); do
+	perm=${a##*:}
+	a=${a%:*}
+	other=${a%:*}
+	a=${a##*:}
+
+	if [ "$a" != "" ] && [ $a -ge $src ] && [ $a -lt $(($src + $range)) ]; then
+	    a=$(($a + $dst - $src))
+	fi
+
+	entry="$other:$a:$perm"
+
+	if [ "$newacl" == "" ]; then
+	    newacl="$entry"
+	else
+	    newacl="$newacl,$entry"
+	fi
+    done
+
+    setfacl -b -m "$newacl" "$file"
+}
+
+setnewacl "$dir"
+for d in $(ls -Ra "$dir" | grep :); do
+    nextdir=${d%:}
+    for f in $(ls -A "$nextdir"); do
+	setnewacl "$nextdir/$f"
+    done
+done
