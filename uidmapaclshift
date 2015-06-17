@@ -14,6 +14,10 @@ setnewacl() {
     file=$1
     newacl=""
 
+    if [ -L "$file" ]; then
+	return 0
+    fi
+
     for a in $(getfacl -Ecnp "$file"); do
 	perm=${a##*:}
 	a=${a%:*}
