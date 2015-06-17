@@ -40,10 +40,19 @@ setnewacl() {
     setfacl -b -m "$newacl" "$file"
 }
 
-setnewacl "$dir"
-for d in $(ls -Ra "$dir" | grep :); do
-    nextdir=${d%:}
-    for f in $(ls -A "$nextdir"); do
-	setnewacl "$nextdir/$f"
+processdir() {
+    local dirpath=$1
+
+    for file in $(ls -A "$dirpath"); do
+	f="$dirpath/$file"
+	if [ -L "$f" ]; then
+	    continue
+	elif [ -d "$f" ]; then
+	    processdir "$f"
+	else
+	    setnewacl "$f"
+	fi
     done
-done
+}
+
+processdir "$dir"
